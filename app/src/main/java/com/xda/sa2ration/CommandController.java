@@ -20,14 +20,16 @@ public class CommandController {
         return execSudo("setprop " + systemProperty + " " + value);
     }
 
-    public static Optional<String> execSudo(String command) {
+    public static Optional<String> execSudo(String... commands) {
         String result = null;
         StringBuilder sb = new StringBuilder();
         try {
             Process su = Runtime.getRuntime().exec("su");
             try (DataOutputStream outputStream = new DataOutputStream(su.getOutputStream())) {
-                outputStream.writeBytes(command + "\n");
-                outputStream.flush();
+                for (String command: commands) {
+                    outputStream.writeBytes(command + "\n");
+                    outputStream.flush();
+                }
                 outputStream.writeBytes("exit\n");
                 outputStream.flush();
                 su.waitFor();

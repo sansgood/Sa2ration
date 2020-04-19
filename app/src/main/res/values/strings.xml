@@ -9,4 +9,5 @@
     <string name="hue_level">Hue level</string>
     <string name="contrast_level">Contrast level</string>
     <string name="color_management">Color management</string>
+    <string name="staturation_level">Staturation level</string>
 </resources>

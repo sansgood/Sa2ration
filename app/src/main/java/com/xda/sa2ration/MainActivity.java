@@ -19,6 +19,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
+import java.util.Currency;
 import java.util.Locale;
 import java.util.Properties;
 
@@ -33,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String PERSISTENT_COLOR_SATURATION = "persist.sys.sf.color_saturation";
     private static final String PERSISTENT_NATIVE_MODE = "persist.sys.sf.native_mode";
+    private static final float STEP_SB = 10f;
 
     private ActivityMainBinding binding;
     private String saturation = "1.00";
@@ -49,10 +55,10 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         setSupportActionBar(binding.toolbar);
-        PersistenceController.getInstance(this).restoreFromProperties(keys.SATURATION.name());
         initSaturationBar();
         initImageView();
         initCm();
+        initButtons();
     }
 
     @Override
@@ -61,6 +67,10 @@ public class MainActivity extends AppCompatActivity {
         PersistenceController.getInstance(this).storeToProperties(keys.SATURATION.name(), saturation);
         PersistenceController.getInstance(this).storeToProperties(keys.CM.name(), cm);
         PersistenceController.getInstance(this).persist();
+    }
+
+    private void initButtons() {
+        binding.content.reset.setOnClickListener(v -> reset());
     }
 
     private void initCm() {
@@ -84,23 +94,26 @@ public class MainActivity extends AppCompatActivity {
         saturation = retrieveCurrentSaturationLevel();
         float fakeProgress = Float.parseFloat(saturation) * 100;
         binding.content.seekBar.setProgress((int) fakeProgress);
+        binding.content.seekBar.incrementProgressBy((int)STEP_SB);
         binding.content.textView.setText(format(Float.parseFloat(saturation)));
         binding.content.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                String satVal = format(progress / 100F);
-                CommandController.execSudo("service call SurfaceFlinger 1022 f " + satVal);
-                saturation = satVal;
-                binding.content.textView.setText(format(progress / 100F));
+                progress = progress / (int)STEP_SB;
+                progress = progress * (int)STEP_SB;
+                saturation = format(progress / 100F);
+                binding.content.textView.setText(saturation);
             }
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
             }
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                String satVal = format(seekBar.getProgress() / 100F);
-                CommandController.execSudo("setprop persist.sys.sf.color_saturation " + satVal);
-                saturation = satVal;
+                float progress = seekBar.getProgress() / 100F;
+                float rounded = ((int)(progress * STEP_SB)) / STEP_SB;
+                saturation = format(rounded);
+                CommandController.execSudo("setprop persist.sys.sf.color_saturation " + saturation,
+                        "service call SurfaceFlinger 1022 f " + saturation);
             }
         });
     }
@@ -127,6 +140,14 @@ public class MainActivity extends AppCompatActivity {
         }
         Log.d(getClass().getName(), "Saturation: " + saturation);
         return saturation;
+    }
+
+    private void reset() {
+        binding.content.seekBar.setProgress(100);
+        binding.content.dci.setChecked(false);
+        PersistenceController.getInstance(this).storeToProperties(keys.CM.name(), cm);
+        PersistenceController.getInstance(this).storeToProperties(keys.SATURATION.name(), saturation);
+        PersistenceController.getInstance(this).persist();
     }
 
     private String format(float progress) {
