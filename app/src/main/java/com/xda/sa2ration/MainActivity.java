@@ -1,31 +1,20 @@
 package com.xda.sa2ration;
 
 import android.app.AlertDialog;
-import android.content.Context;
+import android.app.Dialog;
 import android.os.Bundle;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
-import android.view.View;
-import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.xda.sa2ration.databinding.ActivityMainBinding;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.math.RoundingMode;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.text.NumberFormat;
-import java.util.Currency;
 import java.util.Locale;
-import java.util.Properties;
 
 import androidx.appcompat.app.AppCompatActivity;
 import java8.util.Optional;
@@ -50,7 +39,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (!CommandController.testSudo()) {
-            finish();
+            new AlertDialog.Builder(this)
+                    .setMessage(R.string.warning_no_root)
+                    .setCancelable(false)
+                    .setPositiveButton("Aceptar", (v, a) -> finish())
+                    .show();
+
         }
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -60,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         initCm();
         initButtons();
     }
+
 
     @Override
     protected void onPause() {
@@ -71,6 +66,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void initButtons() {
         binding.content.reset.setOnClickListener(v -> reset());
+        binding.content.apply.setOnClickListener(v -> {
+            super.onPause();
+            PersistenceController.getInstance(this).storeToProperties(keys.SATURATION.name(), saturation);
+            PersistenceController.getInstance(this).storeToProperties(keys.CM.name(), cm);
+            PersistenceController.getInstance(this).persist();
+            Toast.makeText(this, R.string.values_are_saved, Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void initCm() {
@@ -85,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         }
         dci.setOnCheckedChangeListener((buttonView, isChecked) -> {
             cm = isChecked ? "0" : "1";
-            CommandController.execSudo("service call SurfaceFlinger 1023 i32 " + cm);
+            CommandController.execCommand("service call SurfaceFlinger 1023 i32 " + cm);
             CommandController.setProp(PERSISTENT_NATIVE_MODE, cm);
         });
     }
@@ -112,10 +114,11 @@ public class MainActivity extends AppCompatActivity {
                 float progress = seekBar.getProgress() / 100F;
                 float rounded = ((int)(progress * STEP_SB)) / STEP_SB;
                 saturation = format(rounded);
-                CommandController.execSudo("setprop persist.sys.sf.color_saturation " + saturation,
+                CommandController.execCommand("setprop persist.sys.sf.color_saturation " + saturation,
                         "service call SurfaceFlinger 1022 f " + saturation);
             }
         });
+
     }
 
     private void initImageView() {
@@ -144,6 +147,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void reset() {
         binding.content.seekBar.setProgress(100);
+        CommandController.execCommand("setprop persist.sys.sf.color_saturation " + saturation,
+                "service call SurfaceFlinger 1022 f " + saturation);
         binding.content.dci.setChecked(false);
         PersistenceController.getInstance(this).storeToProperties(keys.CM.name(), cm);
         PersistenceController.getInstance(this).storeToProperties(keys.SATURATION.name(), saturation);

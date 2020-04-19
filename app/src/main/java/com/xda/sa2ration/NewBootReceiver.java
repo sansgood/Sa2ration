@@ -15,11 +15,11 @@ public class NewBootReceiver extends BroadcastReceiver {
             Optional<String> saturation = PersistenceController.getInstance(context).restoreFromProperties(MainActivity.keys.SATURATION.name());
             Optional<String> cm = PersistenceController.getInstance(context).restoreFromProperties( MainActivity.keys.CM.name());
             if (saturation.isPresent()) {
-                CommandController.execSudo("service call SurfaceFlinger 1022 f " + saturation.get());
-                CommandController.execSudo("setprop persist.sys.sf.color_saturation " + saturation.get());
+                CommandController.execCommand("service call SurfaceFlinger 1022 f " + saturation.get());
+                CommandController.execCommand("setprop persist.sys.sf.color_saturation " + saturation.get());
             }
             if (cm.isPresent()) {
-                CommandController.execSudo("service call SurfaceFlinger 1023 i32 " + cm);
+                CommandController.execCommand("service call SurfaceFlinger 1023 i32 " + cm);
             }
         }
     }

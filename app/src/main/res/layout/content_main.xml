@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    android:background="@color/colorBg">
+    >
 
     <LinearLayout
         android:id="@+id/ll_preview"
@@ -15,7 +15,6 @@
         android:padding="16dp"
         android:paddingTop="8dp"
         android:orientation="vertical"
-        android:background="@color/colorBgLight"
         app:layout_constraintBottom_toTopOf="@+id/guideline"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -26,9 +25,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="@font/montserrat"
+            android:textStyle="bold"
             android:text="Preview"
-            android:textColor="#FFF"
-            android:textSize="14sp"
+            android:textSize="16sp"
             android:layout_marginBottom="8dp"
             app:layout_constraintBottom_toTopOf="@+id/imageView"
             app:layout_constraintStart_toStartOf="@+id/imageView" />
@@ -78,7 +77,6 @@
             <SeekBar
                 android:id="@+id/seekBar"
                 android:layout_width="0dp"
-
                 android:layout_height="wrap_content"
                 android:layout_weight="0.9"
                 android:max="200"
@@ -92,6 +90,7 @@
                 android:textAlignment="textEnd" />
         </LinearLayout>
 
+        <!--
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -142,7 +141,7 @@
             android:orientation="horizontal">
 
             <SeekBar
-                android:id="@+id/seekBarBrightness"
+                android:id="@+id/seekBarContrast"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="0.9"
@@ -150,20 +149,21 @@
                 android:progress="100" />
 
             <TextView
-                android:id="@+id/textViewBrightnessLevel"
+                android:id="@+id/textViewContrastLevel"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="1.00"
                 android:layout_weight="0.1"
                 android:textAlignment="textEnd" />
         </LinearLayout>
+        -->
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingStart="16dp"
             android:text="@string/color_management"
-            android:textSize="16sp"></TextView>
+            android:textSize="16sp" />
 
         <Switch
             android:id="@+id/dci"
@@ -201,7 +201,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:text="@string/apply"
+            android:text="@string/save"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 

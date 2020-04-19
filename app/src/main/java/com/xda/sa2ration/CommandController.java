@@ -13,14 +13,14 @@ import java8.util.Optional;
 public class CommandController {
 
     public static Optional<String> getProp(String systemProperty) {
-        return execSudo("getprop " + systemProperty);
+        return execCommand("getprop " + systemProperty);
     }
 
     public static Optional<String> setProp(String systemProperty, String value) {
-        return execSudo("setprop " + systemProperty + " " + value);
+        return execCommand("setprop " + systemProperty + " " + value);
     }
 
-    public static Optional<String> execSudo(String... commands) {
+    public static Optional<String> execCommand(String... commands) {
         String result = null;
         StringBuilder sb = new StringBuilder();
         try {
@@ -55,8 +55,10 @@ public class CommandController {
 
     public static boolean testSudo() {
         StackTraceElement st = null;
+        boolean success = false;
         try {
             Process su = Runtime.getRuntime().exec("su");
+
             DataOutputStream outputStream = new DataOutputStream(su.getOutputStream());
             outputStream.writeBytes("exit\n");
             outputStream.flush();
@@ -66,14 +68,11 @@ public class CommandController {
                 bufferedReader.readLine();
             }
             su.waitFor();
+            success = su.exitValue() != 13;
         } catch (Exception e) {
             e.printStackTrace();
-            for (StackTraceElement s : e.getStackTrace()) {
-                st = s;
-                if (st != null) break;
-            }
         }
-        return st == null;
+        return success;
     }
 
 }

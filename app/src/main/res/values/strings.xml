@@ -5,9 +5,11 @@
     <string name="photo_by_desc">Photo taken by Vik Vik; uploaded to <![CDATA[<a href="https://www.wesaturate.com/photo/bfxImVCM">Wesaturate</a>]]></string>
     <string name="enable_dci">Enable Color Management</string>
     <string name="reset">Reset</string>
-    <string name="apply">apply</string>
+    <string name="save">save</string>
     <string name="hue_level">Hue level</string>
     <string name="contrast_level">Contrast level</string>
     <string name="color_management">Color management</string>
     <string name="staturation_level">Staturation level</string>
+    <string name="values_are_saved">Values are saved</string>
+    <string name="warning_no_root">Root access was not detected. App will exit now.</string>
 </resources>
