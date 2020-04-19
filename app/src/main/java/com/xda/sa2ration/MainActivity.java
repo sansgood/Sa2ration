@@ -1,9 +1,7 @@
 package com.xda.sa2ration;
 
-import android.content.Intent;
-import android.net.Uri;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.app.AlertDialog;
+import android.content.Context;
 import android.os.Bundle;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
@@ -15,150 +13,125 @@ import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import com.xda.sa2ration.databinding.ActivityMainBinding;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.lang.reflect.Method;
 import java.util.Locale;
+import java.util.Properties;
+
+import androidx.appcompat.app.AppCompatActivity;
+import java8.util.Optional;
 
 public class MainActivity extends AppCompatActivity {
+
+    public enum keys {
+        SATURATION, HUE, CONTRAST, CM
+    }
+
+    private static final String PERSISTENT_COLOR_SATURATION = "persist.sys.sf.color_saturation";
+    private static final String PERSISTENT_NATIVE_MODE = "persist.sys.sf.native_mode";
+
+    private ActivityMainBinding binding;
+    private String saturation = "1.00";
+    private String hue = "1.00";
+    private String contrast = "1.00";
+    private String cm = "0";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        if (!testSudo()) {
+        if (!CommandController.testSudo()) {
             finish();
         }
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+        setSupportActionBar(binding.toolbar);
+        PersistenceController.getInstance(this).restoreFromProperties(keys.SATURATION.name());
+        initSaturationBar();
+        initImageView();
+        initCm();
+    }
 
-        setContentView(R.layout.activity_main);
+    @Override
+    protected void onPause() {
+        super.onPause();
+        PersistenceController.getInstance(this).storeToProperties(keys.SATURATION.name(), saturation);
+        PersistenceController.getInstance(this).storeToProperties(keys.CM.name(), cm);
+        PersistenceController.getInstance(this).persist();
+    }
 
-        String output = "1.0";
-
-        try {
-            Class<?> SystemProperties = Class.forName("android.os.SystemProperties");
-            Method get = SystemProperties.getMethod("get", String.class);
-            output = get.invoke(null, "persist.sys.sf.color_saturation").toString();
-
-            if (output == null || output.isEmpty()) output = "1.0";
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void initCm() {
+        Switch dci = binding.content.dci;
+        boolean enabled;
+        Optional<String> nativeMode = PersistenceController.getInstance(this)
+                .restoreFromProperties(keys.CM.name());
+        if (nativeMode.isPresent()) {
+            cm = nativeMode.get();
+            enabled = cm.equals("0");
+            binding.content.dci.setChecked(enabled);
         }
-
-        SeekBar seekBar = findViewById(R.id.seekBar);
-
-        float fakeProgress = Float.valueOf(output) * 100;
-        seekBar.setProgress((int) fakeProgress);
-
-        final TextView textView = findViewById(R.id.textView);
-        textView.setText(format(Float.valueOf(output)));
-
-        ImageView preview = findViewById(R.id.imageView);
-        preview.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this)
-                        .setTitle(R.string.photo_by)
-                        .setMessage(Html.fromHtml(getResources().getString(R.string.photo_by_desc), 0))
-                        .show();
-
-                TextView link = alertDialog.findViewById(android.R.id.message);
-                link.setLinksClickable(true);
-                link.setMovementMethod(LinkMovementMethod.getInstance());
-            }
+        dci.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            cm = isChecked ? "0" : "1";
+            CommandController.execSudo("service call SurfaceFlinger 1023 i32 " + cm);
+            CommandController.setProp(PERSISTENT_NATIVE_MODE, cm);
         });
+    }
 
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+    private void initSaturationBar() {
+        saturation = retrieveCurrentSaturationLevel();
+        float fakeProgress = Float.parseFloat(saturation) * 100;
+        binding.content.seekBar.setProgress((int) fakeProgress);
+        binding.content.textView.setText(format(Float.parseFloat(saturation)));
+        binding.content.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                sudo("service call SurfaceFlinger 1022 f " + format(progress / 100F));
-                textView.setText(format(progress / 100F));
+                String satVal = format(progress / 100F);
+                CommandController.execSudo("service call SurfaceFlinger 1022 f " + satVal);
+                saturation = satVal;
+                binding.content.textView.setText(format(progress / 100F));
             }
-
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
             }
-
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                sudo("setprop persist.sys.sf.color_saturation " + format(seekBar.getProgress() / 100F));
+                String satVal = format(seekBar.getProgress() / 100F);
+                CommandController.execSudo("setprop persist.sys.sf.color_saturation " + satVal);
+                saturation = satVal;
             }
         });
+    }
 
-        Switch dci = findViewById(R.id.dci);
-        try {
-            Class<?> SystemProperties = Class.forName("android.os.SystemProperties");
-            Method get = SystemProperties.getMethod("get", String.class);
+    private void initImageView() {
+        ImageView preview = findViewById(R.id.imageView);
+        preview.setOnClickListener(v -> {
+            AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(R.string.photo_by)
+                    .setMessage(Html.fromHtml(getResources().getString(R.string.photo_by_desc), 0))
+                    .show();
 
-            dci.setChecked(Boolean.valueOf(get.invoke(null, "persist.sys.sf.native_mode").toString()));
-        } catch (Exception e) {}
-
-        dci.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                sudo("service call SurfaceFlinger 1023 i32 " + (isChecked ? 0: 1));
-                sudo("setprop persist.sys.sf.native_mode " + (isChecked ? 0 : 1));
-            }
+            TextView link = alertDialog.findViewById(android.R.id.message);
+            link.setLinksClickable(true);
+            link.setMovementMethod(LinkMovementMethod.getInstance());
         });
+    }
+
+    private String retrieveCurrentSaturationLevel() {
+        //Optional<String> optCurrent = CommandController.getProp(PERSISTENT_COLOR_SATURATION);
+        Optional<String> optCurrent = PersistenceController.getInstance(this).restoreFromProperties(keys.SATURATION.name());
+        if (optCurrent.isPresent()) {
+            saturation = optCurrent.get();
+        }
+        Log.d(getClass().getName(), "Saturation: " + saturation);
+        return saturation;
     }
 
     private String format(float progress) {
         return String.format(Locale.US, "%.2f", progress);
     }
 
-    public static void sudo(String... strings) {
-        try{
-            Process su = Runtime.getRuntime().exec("su");
-            DataOutputStream outputStream = new DataOutputStream(su.getOutputStream());
 
-            for (String s : strings) {
-                outputStream.writeBytes(s+"\n");
-                outputStream.flush();
-            }
-
-            outputStream.writeBytes("exit\n");
-            outputStream.flush();
-            try {
-                su.waitFor();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                Log.e("No Root?", e.getMessage());
-            }
-            outputStream.close();
-        } catch(IOException e){
-            e.printStackTrace();
-        }
-    }
-
-    public static boolean testSudo() {
-        StackTraceElement st = null;
-
-        try{
-            Process su = Runtime.getRuntime().exec("su");
-            DataOutputStream outputStream = new DataOutputStream(su.getOutputStream());
-
-            outputStream.writeBytes("exit\n");
-            outputStream.flush();
-
-            DataInputStream inputStream = new DataInputStream(su.getInputStream());
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-
-            while (bufferedReader.readLine() != null) {
-                bufferedReader.readLine();
-            }
-
-            su.waitFor();
-        } catch (Exception e) {
-            e.printStackTrace();
-            for (StackTraceElement s : e.getStackTrace()) {
-                st = s;
-                if (st != null) break;
-            }
-        }
-
-        return st == null;
-    }
 }
