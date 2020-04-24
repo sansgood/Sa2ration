@@ -22,17 +22,16 @@ import java8.util.Optional;
 public class MainActivity extends AppCompatActivity {
 
     public enum keys {
-        SATURATION, HUE, CONTRAST, CM
+        SATURATION, CM
     }
 
-    private static final String PERSISTENT_COLOR_SATURATION = "persist.sys.sf.color_saturation";
-    private static final String PERSISTENT_NATIVE_MODE = "persist.sys.sf.native_mode";
+    public static final int DEFAULT_PROGRESS = 100;
+    public static final String PERSISTENT_COLOR_SATURATION = "persist.sys.sf.color_saturation";
+    public static final String PERSISTENT_NATIVE_MODE = "persist.sys.sf.native_mode";
     private static final float STEP_SB = 10f;
 
     private ActivityMainBinding binding;
     private String saturation = "1.00";
-    private String hue = "1.00";
-    private String contrast = "1.00";
     private String cm = "0";
 
     @Override
@@ -56,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    // Values are persisted on pause, in order to restore them when system is rebooted
+    // anyways, you can force persist them with the save button
     @Override
     protected void onPause() {
         super.onPause();
@@ -64,6 +65,9 @@ public class MainActivity extends AppCompatActivity {
         PersistenceController.getInstance(this).persist();
     }
 
+    /**
+     * Initialized bottom buttons, for force save and default values.
+     */
     private void initButtons() {
         binding.content.reset.setOnClickListener(v -> reset());
         binding.content.apply.setOnClickListener(v -> {
@@ -75,6 +79,9 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Initializes color management control.
+     */
     private void initCm() {
         Switch dci = binding.content.dci;
         boolean enabled;
@@ -92,6 +99,9 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Initializes saturation SeekBar control.
+     */
     private void initSaturationBar() {
         saturation = retrieveCurrentSaturationLevel();
         float fakeProgress = Float.parseFloat(saturation) * 100;
@@ -114,13 +124,16 @@ public class MainActivity extends AppCompatActivity {
                 float progress = seekBar.getProgress() / 100F;
                 float rounded = ((int)(progress * STEP_SB)) / STEP_SB;
                 saturation = format(rounded);
-                CommandController.execCommand("setprop persist.sys.sf.color_saturation " + saturation,
+                CommandController.execCommand("setprop " + PERSISTENT_COLOR_SATURATION + " " + saturation,
                         "service call SurfaceFlinger 1022 f " + saturation);
             }
         });
 
     }
 
+    /**
+     * Initialized ImageView with its onClick Listener.
+     */
     private void initImageView() {
         ImageView preview = findViewById(R.id.imageView);
         preview.setOnClickListener(v -> {
@@ -135,6 +148,10 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Get current persisted saturation level.
+     * @return current saturation level.
+     */
     private String retrieveCurrentSaturationLevel() {
         //Optional<String> optCurrent = CommandController.getProp(PERSISTENT_COLOR_SATURATION);
         Optional<String> optCurrent = PersistenceController.getInstance(this).restoreFromProperties(keys.SATURATION.name());
@@ -145,9 +162,12 @@ public class MainActivity extends AppCompatActivity {
         return saturation;
     }
 
+    /**
+     * Reset values to default ones.
+     */
     private void reset() {
-        binding.content.seekBar.setProgress(100);
-        CommandController.execCommand("setprop persist.sys.sf.color_saturation " + saturation,
+        binding.content.seekBar.setProgress(DEFAULT_PROGRESS);
+        CommandController.execCommand("setprop " + PERSISTENT_COLOR_SATURATION + " " + saturation,
                 "service call SurfaceFlinger 1022 f " + saturation);
         binding.content.dci.setChecked(false);
         PersistenceController.getInstance(this).storeToProperties(keys.CM.name(), cm);
@@ -155,6 +175,11 @@ public class MainActivity extends AppCompatActivity {
         PersistenceController.getInstance(this).persist();
     }
 
+    /**
+     * Formats current progress for its representation in TextView.
+     * @param progress current progress.
+     * @return formatted string that represents progress.
+     */
     private String format(float progress) {
         return String.format(Locale.US, "%.2f", progress);
     }

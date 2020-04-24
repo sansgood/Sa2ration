@@ -12,14 +12,30 @@ import java8.util.Optional;
 
 public class CommandController {
 
+    /**
+     * Gets property from Android system
+     * @param systemProperty property name
+     * @return optional with property value, if found
+     */
     public static Optional<String> getProp(String systemProperty) {
         return execCommand("getprop " + systemProperty);
     }
 
+    /**
+     * Sets a system property value
+     * @param systemProperty property name
+     * @param value new value for the property
+     * @return optional with result, if any
+     */
     public static Optional<String> setProp(String systemProperty, String value) {
         return execCommand("setprop " + systemProperty + " " + value);
     }
 
+    /**
+     * Executes a set of commands as root.
+     * @param commands String array containing the commands.
+     * @return the result, if any.
+     */
     public static Optional<String> execCommand(String... commands) {
         String result = null;
         StringBuilder sb = new StringBuilder();
@@ -53,6 +69,10 @@ public class CommandController {
         return Optional.ofNullable(result);
     }
 
+    /**
+     * Test wether user has root access.
+     * @return true if user has root access, false otherwise.
+     */
     public static boolean testSudo() {
         StackTraceElement st = null;
         boolean success = false;

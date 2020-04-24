@@ -9,9 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.LifecycleObserver;
-import androidx.lifecycle.OnLifecycleEvent;
 import java8.util.Optional;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
@@ -44,14 +41,27 @@ public class PersistenceController {
         return instance;
     }
 
+    /**
+     * Restores property from saved properties.
+     * @param propName name of the property.
+     * @return property value, if present.
+     */
     public Optional<String> restoreFromProperties(String propName) {
         return Optional.ofNullable(values.get(propName));
     }
 
+    /**
+     * Stores or updates property to properties.
+     * @param propName name of the property.
+     * @param value new value for property.
+     */
     public void storeToProperties(String propName, String value) {
         values.put(propName, value);
     }
 
+    /**
+     * Persists all properties in memory to system storage.
+     */
     public void persist() {
         Properties properties = new Properties();
         try (FileOutputStream fos  = context.openFileOutput("info.properties", MODE_PRIVATE)) {
