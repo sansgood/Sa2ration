@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
             new AlertDialog.Builder(this)
                     .setMessage(R.string.warning_no_root)
                     .setCancelable(false)
-                    .setPositiveButton("Aceptar", (v, a) -> finish())
+                    .setPositiveButton(R.string.accept, (v, a) -> finish())
                     .show();
 
         }
