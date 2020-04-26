@@ -9,7 +9,7 @@
     <string name="hue_level">Hue level</string>
     <string name="contrast_level">Contrast level</string>
     <string name="color_management">Color management</string>
-    <string name="staturation_level">Staturation level</string>
+    <string name="saturation_level">Saturation level</string>
     <string name="values_are_saved">Values are saved</string>
     <string name="warning_no_root">Root access was not detected. App will exit now.</string>
     <string name="accept">Ok</string>
